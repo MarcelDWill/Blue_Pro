@@ -103,7 +103,7 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-4">
               {appointments.map((appointment) => (
-                <AppointmentCard key={appointment._id} appointment={appointment} />
+                <AppointmentCard key={appointment.id} appointment={appointment} />
               ))}
             </div>
           )}
@@ -174,7 +174,7 @@ function AppointmentCard({ appointment }: { appointment: ServiceAppointment }) {
         <div className="flex flex-wrap gap-2 mt-1">
           {appointment.requiredSkills.map((skill) => (
             <span
-              key={skill._id}
+              key={skill.id}
               className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
             >
               {skill.name}

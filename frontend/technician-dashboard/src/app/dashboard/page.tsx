@@ -156,10 +156,10 @@ export default function DashboardPage() {
                 ) : (
                   availableJobs.map((job) => (
                     <JobCard
-                      key={job._id}
+                      key={job.id}
                       job={job}
                       showAcceptButton
-                      onAccept={() => handleAcceptJob(job._id)}
+                      onAccept={() => handleAcceptJob(job.id)}
                     />
                   ))
                 )
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 ) : (
                   myJobs.map((job) => (
                     <JobCard
-                      key={job._id}
+                      key={job.id}
                       job={job}
                       showStatusButtons
                       onUpdateStatus={handleUpdateStatus}
@@ -254,7 +254,7 @@ function JobCard({
         <div className="flex flex-wrap gap-2 mt-1">
           {job.requiredSkills.map((skill) => (
             <span
-              key={skill._id}
+              key={skill.id}
               className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
             >
               {skill.name}
@@ -274,12 +274,12 @@ function JobCard({
       {showStatusButtons && job.status !== 'completed' && (
         <div className="flex justify-end space-x-2">
           {job.status === 'accepted' && (
-            <Button onClick={() => onUpdateStatus?.(job._id, 'in_progress')}>
+            <Button onClick={() => onUpdateStatus?.(job.id, 'in_progress')}>
               Start Job
             </Button>
           )}
           {job.status === 'in_progress' && (
-            <Button onClick={() => onUpdateStatus?.(job._id, 'completed')}>
+            <Button onClick={() => onUpdateStatus?.(job.id, 'completed')}>
               Complete Job
             </Button>
           )}

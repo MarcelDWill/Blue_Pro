@@ -13,13 +13,17 @@ const router = express.Router();
 
 const acceptJobValidation = [
   param('id')
-    .isMongoId()
+    .isString()
+    .trim()
+    .notEmpty()
     .withMessage('Invalid appointment ID')
 ];
 
 const updateStatusValidation = [
   param('id')
-    .isMongoId()
+    .isString()
+    .trim()
+    .notEmpty()
     .withMessage('Invalid appointment ID'),
   body('status')
     .isIn(['in_progress', 'completed'])

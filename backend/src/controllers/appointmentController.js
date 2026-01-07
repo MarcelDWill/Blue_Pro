@@ -11,7 +11,8 @@ const createAppointment = async (req, res, next) => {
       address,
       scheduledDateTime,
       estimatedDuration,
-      priority
+      priority,
+      requiredSkills
     } = req.body;
 
     const workArea = await prisma.workArea.findFirst({
@@ -31,19 +32,31 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    const requiredSkills = await prisma.skill.findMany({
+    const validSkills = await prisma.skill.findMany({
       where: {
-        category: serviceType,
+        id: { in: requiredSkills },
         isActive: true
       }
     });
 
-    if (requiredSkills.length === 0) {
+    if (validSkills.length === 0 || validSkills.length !== requiredSkills.length) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'NO_SKILLS_FOUND',
-          message: 'No skills found for this service type'
+          code: 'INVALID_SKILLS',
+          message: 'One or more selected skills are invalid or inactive'
+        }
+      });
+    }
+
+    // Validate that all skills belong to the same category as serviceType
+    const skillCategories = [...new Set(validSkills.map(skill => skill.category))];
+    if (skillCategories.length !== 1 || skillCategories[0] !== serviceType) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'SKILL_CATEGORY_MISMATCH',
+          message: 'All selected skills must belong to the specified service type'
         }
       });
     }
@@ -73,7 +86,7 @@ const createAppointment = async (req, res, next) => {
         estimatedDuration: estimatedDuration || 120,
         priority: priority || 'medium',
         requiredSkills: {
-          create: requiredSkills.map(skill => ({ skillId: skill.id }))
+          create: validSkills.map(skill => ({ skillId: skill.id }))
         }
       },
       include: {

@@ -54,12 +54,22 @@ const createAppointmentValidation = [
   body('priority')
     .optional()
     .isIn(['low', 'medium', 'high', 'urgent'])
-    .withMessage('Invalid priority level')
+    .withMessage('Invalid priority level'),
+  body('requiredSkills')
+    .isArray({ min: 1 })
+    .withMessage('At least one skill must be selected'),
+  body('requiredSkills.*')
+    .isString()
+    .trim()
+    .notEmpty()
+    .withMessage('Invalid skill ID')
 ];
 
 const feedbackValidation = [
   param('id')
-    .isMongoId()
+    .isString()
+    .trim()
+    .notEmpty()
     .withMessage('Invalid appointment ID'),
   body('rating')
     .isInt({ min: 1, max: 5 })
@@ -73,7 +83,7 @@ const feedbackValidation = [
 
 router.post('/', authenticateToken, requireRole('customer'), createAppointmentValidation, handleValidationErrors, createAppointment);
 router.get('/', authenticateToken, requireRole('customer'), getCustomerAppointments);
-router.get('/:id', authenticateToken, param('id').isMongoId(), handleValidationErrors, getAppointmentById);
+router.get('/:id', authenticateToken, param('id').isString().trim().notEmpty(), handleValidationErrors, getAppointmentById);
 router.post('/:id/feedback', authenticateToken, requireRole('customer'), feedbackValidation, handleValidationErrors, submitFeedback);
 
 module.exports = router;

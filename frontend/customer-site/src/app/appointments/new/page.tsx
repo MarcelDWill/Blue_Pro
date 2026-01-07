@@ -34,7 +34,7 @@ const serviceTypes = [
   'carpentry',
   'painting',
   'landscaping',
-  'general_maintenance'
+  'general_repair'
 ];
 
 const priorities = [
@@ -378,17 +378,17 @@ export default function NewAppointmentPage() {
                 <div className="grid md:grid-cols-2 gap-3">
                   {getSkillsByService().map(skill => (
                     <label
-                      key={skill._id}
+                      key={skill.id}
                       className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                        formData.requiredSkills.includes(skill._id)
+                        formData.requiredSkills.includes(skill.id)
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-300 hover:bg-gray-50'
                       }`}
                     >
                       <input
                         type="checkbox"
-                        checked={formData.requiredSkills.includes(skill._id)}
-                        onChange={() => handleSkillToggle(skill._id)}
+                        checked={formData.requiredSkills.includes(skill.id)}
+                        onChange={() => handleSkillToggle(skill.id)}
                         className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <div>

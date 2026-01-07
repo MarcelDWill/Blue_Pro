@@ -1,5 +1,5 @@
 export interface Customer {
-  _id: string;
+  id: string;
   firstName: string;
   lastName: string;
   phoneNumber: string;
@@ -16,7 +16,7 @@ export interface Customer {
 }
 
 export interface Skill {
-  _id: string;
+  id: string;
   name: string;
   category: string;
   description?: string;
@@ -24,7 +24,7 @@ export interface Skill {
 }
 
 export interface WorkArea {
-  _id: string;
+  id: string;
   name: string;
   city: string;
   county?: string;
@@ -41,7 +41,7 @@ export interface WorkArea {
 }
 
 export interface Technician {
-  _id: string;
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -56,7 +56,7 @@ export interface Technician {
 }
 
 export interface ServiceAppointment {
-  _id: string;
+  id: string;
   customerId: Customer;
   technicianId?: Technician;
   title: string;
