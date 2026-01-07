@@ -1,0 +1,304 @@
+// This is your Prisma schema file for Field Service Manager
+// MongoDB to PostgreSQL migration
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum ServiceCategory {
+  plumbing
+  electrical
+  roofing
+  hvac
+  general_repair
+  carpentry
+  painting
+  landscaping
+}
+
+enum AppointmentStatus {
+  pending
+  assigned
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+enum AppointmentPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+// ============================================
+// ADDRESS MODEL (Shared)
+// ============================================
+
+model Address {
+  id        String   @id @default(cuid())
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  lat       Decimal? @db.Decimal(10, 8)
+  lng       Decimal? @db.Decimal(11, 8)
+
+  // Relations
+  customers    Customer[]
+  appointments ServiceAppointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([zipCode])
+  @@map("addresses")
+}
+
+// ============================================
+// USER MODELS
+// ============================================
+
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  firstName    String
+  lastName     String
+  phoneNumber  String
+
+  // Address relation
+  addressId    String
+  address      Address  @relation(fields: [addressId], references: [id], onDelete: Cascade)
+
+  // Relations
+  appointments ServiceAppointment[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@map("customers")
+}
+
+model Technician {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  firstName    String
+  lastName     String
+  phoneNumber  String
+  employeeId   String   @unique
+  hourlyRate   Decimal? @db.Decimal(10, 2)
+  isActive     Boolean  @default(true)
+
+  // Many-to-Many Relations via Junction Tables
+  skills       TechnicianSkill[]
+  workAreas    TechnicianWorkArea[]
+
+  // One-to-Many Relations
+  workingHours WorkingHours[]
+  appointments ServiceAppointment[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([employeeId])
+  @@index([isActive])
+  @@map("technicians")
+}
+
+// ============================================
+// SKILL MODELS
+// ============================================
+
+model Skill {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  category     ServiceCategory
+  description  String?
+  isActive     Boolean         @default(true)
+
+  // Many-to-Many Relations
+  technicians  TechnicianSkill[]
+  appointments AppointmentSkill[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@map("skills")
+}
+
+// Junction table for Technician-Skill many-to-many
+model TechnicianSkill {
+  id           String     @id @default(cuid())
+  technicianId String
+  skillId      String
+
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+
+  @@unique([technicianId, skillId])
+  @@index([technicianId])
+  @@index([skillId])
+  @@map("technician_skills")
+}
+
+// ============================================
+// WORK AREA MODELS
+// ============================================
+
+model WorkArea {
+  id          String   @id @default(cuid())
+  name        String
+  city        String
+  county      String?
+  state       String   @db.Char(2)
+  zipCodes    String[] // PostgreSQL array type
+
+  // Geospatial fields (simplified with lat/lng)
+  centerLat   Decimal  @db.Decimal(10, 8)
+  centerLng   Decimal  @db.Decimal(11, 8)
+  radiusMiles Decimal  @db.Decimal(5, 2)
+
+  isActive    Boolean  @default(true)
+
+  // Many-to-Many Relations
+  technicians  TechnicianWorkArea[]
+  appointments ServiceAppointment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([city, state])
+  @@map("work_areas")
+}
+
+// Junction table for Technician-WorkArea many-to-many
+model TechnicianWorkArea {
+  id           String     @id @default(cuid())
+  technicianId String
+  workAreaId   String
+
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  workArea     WorkArea   @relation(fields: [workAreaId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+
+  @@unique([technicianId, workAreaId])
+  @@index([technicianId])
+  @@index([workAreaId])
+  @@map("technician_work_areas")
+}
+
+// ============================================
+// WORKING HOURS MODEL
+// ============================================
+
+model WorkingHours {
+  id            String     @id @default(cuid())
+  technicianId  String
+  dayOfWeek     Int        // 0-6 (Sunday-Saturday)
+  startTime     String     // HH:MM format
+  endTime       String     // HH:MM format
+  isAvailable   Boolean    @default(true)
+  effectiveDate DateTime   @default(now())
+
+  technician    Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([technicianId, dayOfWeek])
+  @@index([effectiveDate])
+  @@map("working_hours")
+}
+
+// ============================================
+// SERVICE APPOINTMENT MODELS
+// ============================================
+
+model ServiceAppointment {
+  id                 String              @id @default(cuid())
+  customerId         String
+  technicianId       String?
+
+  title              String
+  description        String
+  serviceType        ServiceCategory
+
+  // Many-to-Many Skills via Junction Table
+  requiredSkills     AppointmentSkill[]
+
+  workAreaId         String
+
+  // Address relation
+  addressId          String
+  address            Address             @relation(fields: [addressId], references: [id])
+
+  scheduledDateTime  DateTime
+  estimatedDuration  Int                 @default(120) // minutes
+
+  status             AppointmentStatus   @default(pending)
+  priority           AppointmentPriority @default(medium)
+
+  // Customer Feedback - JSON column
+  customerFeedback   Json?
+
+  // Status timestamps
+  assignedAt         DateTime?
+  acceptedAt         DateTime?
+  completedAt        DateTime?
+  completionNotes    String?
+
+  referenceNumber    String              @unique @default(cuid())
+
+  // Relations
+  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  technician         Technician?         @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  workArea           WorkArea            @relation(fields: [workAreaId], references: [id])
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([customerId])
+  @@index([technicianId])
+  @@index([status])
+  @@index([scheduledDateTime])
+  @@index([workAreaId])
+  @@index([referenceNumber])
+  @@map("service_appointments")
+}
+
+// Junction table for ServiceAppointment-Skill many-to-many
+model AppointmentSkill {
+  id            String             @id @default(cuid())
+  appointmentId String
+  skillId       String
+
+  appointment   ServiceAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  skill         Skill              @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime           @default(now())
+
+  @@unique([appointmentId, skillId])
+  @@index([appointmentId])
+  @@index([skillId])
+  @@map("appointment_skills")
+}
